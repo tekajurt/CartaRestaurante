@@ -29,7 +29,7 @@ export async function getMenuItems(): Promise<MenuItem[]> {
   return data || [];
 }
 
-export async function addMenuItem(formData: FormData) {
+export async function addMenuItem(formData: FormData): Promise<void> {
   const supabase = await createClient();
 
   const item = {
@@ -44,15 +44,14 @@ export async function addMenuItem(formData: FormData) {
 
   if (error) {
     console.error("Error adding menu item:", error);
-    return { error: "Error al agregar el plato" };
+    return;
   }
 
   revalidatePath("/admin");
   revalidatePath("/carta");
-  return { success: true };
 }
 
-export async function updateMenuItem(formData: FormData) {
+export async function updateMenuItem(formData: FormData): Promise<void> {
   const supabase = await createClient();
 
   const id = formData.get("id") as string;
@@ -71,15 +70,14 @@ export async function updateMenuItem(formData: FormData) {
 
   if (error) {
     console.error("Error updating menu item:", error);
-    return { error: "Error al actualizar el plato" };
+    return;
   }
 
   revalidatePath("/admin");
   revalidatePath("/carta");
-  return { success: true };
 }
 
-export async function deleteMenuItem(formData: FormData) {
+export async function deleteMenuItem(formData: FormData): Promise<void> {
   const supabase = await createClient();
 
   const id = formData.get("id") as string;
@@ -88,15 +86,14 @@ export async function deleteMenuItem(formData: FormData) {
 
   if (error) {
     console.error("Error deleting menu item:", error);
-    return { error: "Error al eliminar el plato" };
+    return;
   }
 
   revalidatePath("/admin");
   revalidatePath("/carta");
-  return { success: true };
 }
 
-export async function toggleAvailability(formData: FormData) {
+export async function toggleAvailability(formData: FormData): Promise<void> {
   const supabase = await createClient();
 
   const id = formData.get("id") as string;
@@ -109,10 +106,9 @@ export async function toggleAvailability(formData: FormData) {
 
   if (error) {
     console.error("Error toggling availability:", error);
-    return { error: "Error al cambiar disponibilidad" };
+    return;
   }
 
   revalidatePath("/admin");
   revalidatePath("/carta");
-  return { success: true };
 }

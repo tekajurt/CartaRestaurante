@@ -108,3 +108,19 @@ VALUES (
         'Bebidas',
         true
     );
+
+-- Optional: Create a default admin user for local development
+-- WARNING: Do not use these credentials in production
+-- Single-statement version (works well in Supabase SQL Editor)
+SELECT
+    CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM auth.users
+            WHERE
+                email = 'admin@admin'
+        ) THEN NULL
+        ELSE auth.create_user (
+            '{"email":"admin@admin","password":"asdasdasd","email_confirm":true}'::jsonb
+        )
+    END;

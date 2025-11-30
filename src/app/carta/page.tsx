@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { MenuItem } from "@/app/admin/actions";
+import type { MenuItem } from "@/types/menu";
 
 export default async function CartaPage() {
   const supabase = await createClient();
@@ -55,7 +55,7 @@ export default async function CartaPage() {
                   {category}
                 </h2>
                 <div className="space-y-4">
-                  {groupedItems[category].map((item) => (
+                  {(groupedItems[category] as MenuItem[]).map((item: MenuItem) => (
                     <div
                       key={item.id}
                       className="flex justify-between items-start"
@@ -70,7 +70,7 @@ export default async function CartaPage() {
                       </div>
                       <div className="ml-4 flex-shrink-0">
                         <span className="text-lg font-semibold text-amber-600">
-                          ${item.price.toFixed(2)}
+                          ${Number(item.price).toFixed(2)}
                         </span>
                       </div>
                     </div>
