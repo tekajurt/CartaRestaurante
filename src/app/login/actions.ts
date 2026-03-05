@@ -2,47 +2,48 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { verifyUserPassword, createUser, getUserByEmail } from "@/lib/db/auth";
+import { createSession, deleteSession } from "@/lib/db/session";
 
 export async function login(formData: FormData) {
-  const supabase = await createClient();
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-  const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  };
+  const user = verifyUserPassword(email, password);
 
-  const { error } = await supabase.auth.signInWithPassword(data);
-
-  if (error) {
+  if (!user) {
     redirect("/login?error=Credenciales incorrectas");
   }
+
+  await createSession(user);
 
   revalidatePath("/", "layout");
   redirect("/admin");
 }
 
 export async function signup(formData: FormData) {
-  const supabase = await createClient();
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-  const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  };
-
-  const { error } = await supabase.auth.signUp(data);
-
-  if (error) {
-    redirect("/login?error=Error al registrarse");
+  // Check if user already exists
+  const existingUser = getUserByEmail(email);
+  if (existingUser) {
+    redirect("/login?error=El email ya está registrado");
   }
 
-  revalidatePath("/", "layout");
-  redirect("/login?message=Revisa tu email para confirmar tu cuenta");
+  try {
+    const user = createUser(email, password);
+    await createSession(user);
+
+    revalidatePath("/", "layout");
+    redirect("/admin");
+  } catch {
+    redirect("/login?error=Error al registrarse");
+  }
 }
 
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  await deleteSession();
   revalidatePath("/", "layout");
   redirect("/login");
 }

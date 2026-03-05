@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/db/session";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/login/actions";
 import {
@@ -11,11 +11,7 @@ import ActionButton from "@/components/ui/ActionButton";
 import EditMenuItemModal from "./EditMenuItemModal";
 
 export default async function AdminPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
   if (!user) {
     redirect("/login");

@@ -1,18 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { getAvailableMenuItems } from "@/lib/db/menu";
 import type { MenuItem } from "@/types/menu";
 
 export default async function CartaPage() {
-  const supabase = await createClient();
-
-  const { data: menuItems } = await supabase
-    .from("menu_items")
-    .select("*")
-    .eq("available", true)
-    .order("category", { ascending: true })
-    .order("name", { ascending: true });
+  const menuItems = getAvailableMenuItems() as MenuItem[];
 
   // Group items by category
-  const groupedItems = (menuItems || []).reduce(
+  const groupedItems = menuItems.reduce(
     (acc, item) => {
       if (!acc[item.category]) {
         acc[item.category] = [];
