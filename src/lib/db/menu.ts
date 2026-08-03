@@ -1,70 +1,58 @@
-import { getDB } from "./init";
+import { getSQL } from "./init";
 import { randomUUID } from "crypto";
 import type { Menu } from "@/types";
 
 export type { Menu };
 
-export function getNextMenuNumber(restaurantId: string): number {
-  const db = getDB();
-  const stmt = db.prepare("SELECT COALESCE(MAX(menu_number), 0) + 1 AS next_number FROM menus WHERE restaurant_id = ?");
-  const row = stmt.get(restaurantId) as { next_number: number } | undefined;
-  return row?.next_number ?? 1;
+export async function getNextMenuNumber(restaurantId: string): Promise<number> {
+  const sql = await getSQL();
+  const rows = await sql`SELECT COALESCE(MAX(menu_number), 0) + 1 AS next_number FROM menus WHERE restaurant_id = ${restaurantId}`;
+  return (rows[0] as { next_number: number } | undefined)?.next_number ?? 1;
 }
 
-export function createMenu(restaurantId: string, name: string): Menu {
-  const db = getDB();
+export async function createMenu(restaurantId: string, name: string): Promise<Menu> {
+  const sql = await getSQL();
   const id = randomUUID();
-  const menuNumber = getNextMenuNumber(restaurantId);
+  const menuNumber = await getNextMenuNumber(restaurantId);
 
-  const stmt = db.prepare(`
-    INSERT INTO menus (id, restaurant_id, menu_number, name)
-    VALUES (?, ?, ?, ?)
-  `);
-
-  stmt.run(id, restaurantId, menuNumber, name);
+  await sql`INSERT INTO menus (id, restaurant_id, menu_number, name) VALUES (${id}, ${restaurantId}, ${menuNumber}, ${name})`;
 
   return { id, restaurant_id: restaurantId, menu_number: menuNumber, name, is_active: true, created_at: new Date().toISOString() };
 }
 
-export function updateMenu(id: string, name: string): Menu {
-  const db = getDB();
-  const stmt = db.prepare("UPDATE menus SET name = ? WHERE id = ?");
-  stmt.run(name, id);
-  return getMenuById(id)!;
+export async function updateMenu(id: string, name: string): Promise<Menu> {
+  const sql = await getSQL();
+  await sql`UPDATE menus SET name = ${name} WHERE id = ${id}`;
+  return (await getMenuById(id))!;
 }
 
-export function deleteMenu(id: string): void {
-  const db = getDB();
-  const stmt = db.prepare("DELETE FROM menus WHERE id = ?");
-  stmt.run(id);
+export async function deleteMenu(id: string): Promise<void> {
+  const sql = await getSQL();
+  await sql`DELETE FROM menus WHERE id = ${id}`;
 }
 
-export function getMenuById(id: string): Menu | null {
-  const db = getDB();
-  const stmt = db.prepare("SELECT id, restaurant_id, menu_number, name, is_active, created_at FROM menus WHERE id = ?");
-  const row = stmt.get(id) as Record<string, unknown> | undefined;
-  return row ? mapRow(row) : null;
+export async function getMenuById(id: string): Promise<Menu | null> {
+  const sql = await getSQL();
+  const rows = await sql`SELECT id, restaurant_id, menu_number, name, is_active, created_at FROM menus WHERE id = ${id}`;
+  return rows[0] ? mapRow(rows[0] as Record<string, unknown>) : null;
 }
 
-export function getMenuByNumber(restaurantId: string, menuNumber: number): Menu | null {
-  const db = getDB();
-  const stmt = db.prepare("SELECT id, restaurant_id, menu_number, name, is_active, created_at FROM menus WHERE restaurant_id = ? AND menu_number = ?");
-  const row = stmt.get(restaurantId, menuNumber) as Record<string, unknown> | undefined;
-  return row ? mapRow(row) : null;
+export async function getMenuByNumber(restaurantId: string, menuNumber: number): Promise<Menu | null> {
+  const sql = await getSQL();
+  const rows = await sql`SELECT id, restaurant_id, menu_number, name, is_active, created_at FROM menus WHERE restaurant_id = ${restaurantId} AND menu_number = ${menuNumber}`;
+  return rows[0] ? mapRow(rows[0] as Record<string, unknown>) : null;
 }
 
-export function getMenusByRestaurant(restaurantId: string): Menu[] {
-  const db = getDB();
-  const stmt = db.prepare("SELECT id, restaurant_id, menu_number, name, is_active, created_at FROM menus WHERE restaurant_id = ? ORDER BY menu_number ASC");
-  const rows = stmt.all(restaurantId) as Record<string, unknown>[];
-  return rows.map(mapRow);
+export async function getMenusByRestaurant(restaurantId: string): Promise<Menu[]> {
+  const sql = await getSQL();
+  const rows = await sql`SELECT id, restaurant_id, menu_number, name, is_active, created_at FROM menus WHERE restaurant_id = ${restaurantId} ORDER BY menu_number ASC`;
+  return rows.map(r => mapRow(r as Record<string, unknown>));
 }
 
-export function getMenuByRestaurantAndNumber(restaurantId: string, menuNumber: number): Menu | null {
-  const db = getDB();
-  const stmt = db.prepare("SELECT id, restaurant_id, menu_number, name, is_active, created_at FROM menus WHERE restaurant_id = ? AND menu_number = ?");
-  const row = stmt.get(restaurantId, menuNumber) as Record<string, unknown> | undefined;
-  return row ? mapRow(row) : null;
+export async function getMenuByRestaurantAndNumber(restaurantId: string, menuNumber: number): Promise<Menu | null> {
+  const sql = await getSQL();
+  const rows = await sql`SELECT id, restaurant_id, menu_number, name, is_active, created_at FROM menus WHERE restaurant_id = ${restaurantId} AND menu_number = ${menuNumber}`;
+  return rows[0] ? mapRow(rows[0] as Record<string, unknown>) : null;
 }
 
 function mapRow(row: Record<string, unknown>): Menu {

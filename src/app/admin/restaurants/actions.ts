@@ -22,7 +22,7 @@ const restaurantSchema = z.object({
 
 export async function getRestaurantsAction() {
   await requireAuth();
-  return getRestaurants();
+  return await getRestaurants();
 }
 
 export async function createRestaurantAction(formData: FormData) {
@@ -41,7 +41,7 @@ export async function createRestaurantAction(formData: FormData) {
     redirect(`/admin/restaurants/new?error=${encodeURIComponent(error)}`);
   }
 
-  const restaurant = createRestaurant(parsed.data);
+  const restaurant = await createRestaurant(parsed.data);
   revalidatePath("/admin");
   redirect(`/admin/restaurants/${restaurant.id}/menus`);
 }
@@ -62,18 +62,18 @@ export async function updateRestaurantAction(id: string, formData: FormData) {
     redirect(`/admin/restaurants/${id}/edit?error=${encodeURIComponent(error)}`);
   }
 
-  updateRestaurant(id, parsed.data);
+  await updateRestaurant(id, parsed.data);
   revalidatePath("/admin");
   redirect("/admin");
 }
 
 export async function deleteRestaurantAction(id: string) {
   await requireAuth();
-  deleteRestaurant(id);
+  await deleteRestaurant(id);
   revalidatePath("/admin");
 }
 
 export async function getRestaurantAction(id: string) {
   await requireAuth();
-  return getRestaurantById(id);
+  return await getRestaurantById(id);
 }

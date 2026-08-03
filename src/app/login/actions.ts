@@ -9,7 +9,7 @@ export async function login(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  const user = verifyUserPassword(email, password);
+  const user = await verifyUserPassword(email, password);
 
   if (!user) {
     redirect("/login?error=Credenciales incorrectas");

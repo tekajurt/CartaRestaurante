@@ -26,13 +26,13 @@ export default async function MenuItemsPage({
   const menuNumber = Number(menuNumberStr);
   const sp = await searchParams;
 
-  const restaurant = getRestaurantById(restaurantId);
+  const restaurant = await getRestaurantById(restaurantId);
   if (!restaurant) redirect("/admin");
 
-  const menu = getMenuByNumber(restaurantId, menuNumber);
+  const menu = await getMenuByNumber(restaurantId, menuNumber);
   if (!menu) redirect(`/admin/restaurants/${restaurantId}/menus`);
 
-  const items = getMenuItemsByMenu(menu.id);
+  const items = await getMenuItemsByMenu(menu.id);
 
   const grouped = items.reduce<Record<string, typeof items>>((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];

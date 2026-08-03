@@ -8,7 +8,7 @@ export default async function RestaurantLandingPage({
   params: Promise<{ restaurantSlug: string }>;
 }) {
   const { restaurantSlug } = await params;
-  const restaurant = getRestaurantBySlug(restaurantSlug);
+  const restaurant = await getRestaurantBySlug(restaurantSlug);
 
   if (!restaurant || !restaurant.is_active) {
     notFound();

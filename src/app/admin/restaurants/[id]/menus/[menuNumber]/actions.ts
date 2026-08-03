@@ -24,10 +24,10 @@ const menuItemSchema = z.object({
 
 export async function getMenuWithItemsAction(menuId: string) {
   await requireAuth();
-  const menu = getMenuById(menuId);
+  const menu = await getMenuById(menuId);
   if (!menu) return null;
-  const restaurant = getRestaurantById(menu.restaurant_id);
-  const items = getMenuItemsByMenu(menuId);
+  const restaurant = await getRestaurantById(menu.restaurant_id);
+  const items = await getMenuItemsByMenu(menuId);
   return { menu, restaurant, items };
 }
 
@@ -55,7 +55,7 @@ export async function addMenuItemAction(formData: FormData) {
     redirect(`/admin/restaurants/${restaurantId}/menus/${menuNumber}?error=${encodeURIComponent(error)}`);
   }
 
-  addMenuItem(menuId, parsed.data);
+  await addMenuItem(menuId, parsed.data);
   revalidatePath(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
   redirect(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
 }
@@ -79,7 +79,7 @@ export async function updateMenuItemAction(formData: FormData) {
     redirect(`/admin/restaurants/${restaurantId}/menus/${menuNumber}?error=${encodeURIComponent(error)}`);
   }
 
-  updateMenuItem(itemId, parsed.data);
+  await updateMenuItem(itemId, parsed.data);
   revalidatePath(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
   redirect(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
 }
@@ -89,7 +89,7 @@ export async function deleteMenuItemAction(formData: FormData) {
   const { menuId: _menuId, restaurantId, menuNumber } = getIds(formData);
   void _menuId;
   const itemId = formData.get("item_id") as string;
-  deleteMenuItem(itemId);
+  await deleteMenuItem(itemId);
   revalidatePath(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
 }
 
@@ -98,6 +98,6 @@ export async function toggleMenuItemAvailabilityAction(formData: FormData) {
   const { menuId: _menuId, restaurantId, menuNumber } = getIds(formData);
   void _menuId;
   const itemId = formData.get("item_id") as string;
-  toggleMenuItemAvailability(itemId);
+  await toggleMenuItemAvailability(itemId);
   revalidatePath(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
 }

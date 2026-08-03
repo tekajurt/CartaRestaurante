@@ -19,9 +19,9 @@ const menuSchema = z.object({
 
 export async function getRestaurantWithMenusAction(id: string) {
   await requireAuth();
-  const restaurant = getRestaurantById(id);
+  const restaurant = await getRestaurantById(id);
   if (!restaurant) return null;
-  const menus = getMenusByRestaurant(id);
+  const menus = await getMenusByRestaurant(id);
   return { restaurant, menus };
 }
 
@@ -37,7 +37,7 @@ export async function createMenuAction(restaurantId: string, formData: FormData)
     redirect(`/admin/restaurants/${restaurantId}/menus?error=${encodeURIComponent(error)}`);
   }
 
-  createMenu(restaurantId, parsed.data.name);
+  await createMenu(restaurantId, parsed.data.name);
   revalidatePath(`/admin/restaurants/${restaurantId}/menus`);
   redirect(`/admin/restaurants/${restaurantId}/menus`);
 }
@@ -54,18 +54,18 @@ export async function updateMenuAction(id: string, restaurantId: string, formDat
     redirect(`/admin/restaurants/${restaurantId}/menus?error=${encodeURIComponent(error)}`);
   }
 
-  updateMenu(id, parsed.data.name);
+  await updateMenu(id, parsed.data.name);
   revalidatePath(`/admin/restaurants/${restaurantId}/menus`);
   redirect(`/admin/restaurants/${restaurantId}/menus`);
 }
 
 export async function deleteMenuAction(id: string, restaurantId: string) {
   await requireAuth();
-  deleteMenu(id);
+  await deleteMenu(id);
   revalidatePath(`/admin/restaurants/${restaurantId}/menus`);
 }
 
 export async function getMenuAction(id: string) {
   await requireAuth();
-  return getMenuById(id);
+  return await getMenuById(id);
 }

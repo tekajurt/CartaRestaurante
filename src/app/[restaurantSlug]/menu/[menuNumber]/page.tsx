@@ -12,17 +12,17 @@ export default async function RestaurantMenuPage({
   const { restaurantSlug, menuNumber: menuNumberStr } = await params;
   const menuNumber = Number(menuNumberStr);
 
-  const restaurant = getRestaurantBySlug(restaurantSlug);
+  const restaurant = await getRestaurantBySlug(restaurantSlug);
   if (!restaurant || !restaurant.is_active) {
     notFound();
   }
 
-  const menu = getMenuByNumber(restaurant.id, menuNumber);
+  const menu = await getMenuByNumber(restaurant.id, menuNumber);
   if (!menu || !menu.is_active) {
     notFound();
   }
 
-  const menuItems = getMenuItemsByMenuPublic(menu.id);
+  const menuItems = await getMenuItemsByMenuPublic(menu.id);
 
   const theme = getTheme(restaurant.theme);
   const MenuPage = theme.MenuPage;

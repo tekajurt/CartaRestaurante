@@ -5,15 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "next build && npm run init-db",
     "start": "next start",
     "lint": "eslint",
     "init-db": "node --require tsx/cjs scripts/init-db.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
+    "@neondatabase/serverless": "^1",
     "next": "^16.2.12",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "tsx": "^4.21.0",
     "zod": "^4.4.3"
   },
   "overrides": {
@@ -25,7 +27,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -33,7 +34,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.6",
     "tailwindcss": "^4",
-    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

@@ -1,6 +1,11 @@
 import crypto from "crypto";
 
-const SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const SECRET = process.env.JWT_SECRET;
+
+function getSecret(): string {
+  if (!SECRET) throw new Error("JWT_SECRET environment variable is required");
+  return SECRET;
+}
 
 function base64Encode(str: string): string {
   return Buffer.from(str).toString("base64url");
@@ -12,7 +17,7 @@ function base64Decode(str: string): string {
 
 function createSignature(data: string): string {
   return crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", getSecret())
     .update(data)
     .digest("base64url");
 }
