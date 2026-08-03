@@ -1,7 +1,7 @@
 # AGENTS.md — CartaRestaurante
 
 ## Overview
-CMS generador de landing pages y páginas de menú para restaurantes. Next.js 16 App Router + React 19 + TypeScript 5 + Tailwind CSS v4. Persistencia local con SQLite (`better-sqlite3`). Autenticación propia email/contraseña con sesiones JWT firmadas manualmente en cookies HTTP-only. Un único admin gestiona múltiples restaurantes; cada uno expone una landing pública y menús numerados renderizados por tema seleccionable.
+CMS generador de landing pages y páginas de menú para restaurantes. Next.js 16 App Router + React 19 + TypeScript 5 + Tailwind CSS v4. Persistencia en Neon PostgreSQL serverless (`@neondatabase/serverless`). Autenticación propia email/contraseña con sesiones JWT firmadas manualmente en cookies HTTP-only. Un único admin gestiona múltiples restaurantes; cada uno expone una landing pública y menús numerados renderizados por tema seleccionable.
 
 ## Structure
 ```
@@ -18,21 +18,15 @@ CMS generador de landing pages y páginas de menú para restaurantes. Next.js 16
 │   ├── carta/                  # Vacío — ruta reservada/no usada
 │   └── [restaurantSlug]/       # Landing + menú público
 ├── src/components/ui/          # Componentes reutilizables (ActionButton, etc.)
-├── src/lib/db/                 # SQLite + auth + sesiones
-│   ├── init.ts                 # Singleton DB + schema
+├── src/lib/db/                 # Neon PostgreSQL + auth + sesiones
+│   ├── init.ts                 # Singleton async getSQL() + schema
 │   ├── index.ts                # Barrel exports (preferir imports explícitos)
 │   ├── restaurant.ts / menu.ts / menuItem.ts
 │   ├── auth.ts / session.ts
 │   └── jwt.ts                  # Implementación manual JWT HS256
-├── src/lib/supabase/           # Shims legacy de la migración Supabase → SQLite
-│   ├── server.ts
-│   └── middleware.ts
-├── src/proxy.ts                # Middleware legacy no registrado
 ├── src/themes/                 # Plantillas registradas (default, modern)
 ├── src/types/                  # Tipos compartidos
 ├── scripts/init-db.ts          # Seed inicial + admin de prueba
-├── database/setup.sql          # Schema legacy de Supabase (no usado)
-├── restaurant.db*              # Archivo SQLite (no versionar)
 └── package.json
 ```
 
@@ -46,28 +40,27 @@ CMS generador de landing pages y páginas de menú para restaurantes. Next.js 16
 | CRUD platos + toggle disponibilidad | `src/app/admin/restaurants/[id]/menus/[menuNumber]/actions.ts` |
 | Landing pública | `src/app/[restaurantSlug]/page.tsx` |
 | Menú público | `src/app/[restaurantSlug]/menu/[menuNumber]/page.tsx` |
-| Conexión SQLite y schema | `src/lib/db/init.ts` |
+| Conexión PostgreSQL y schema | `src/lib/db/init.ts` |
 | Queries restaurantes | `src/lib/db/restaurant.ts` |
 | Queries menús | `src/lib/db/menu.ts` |
 | Queries platos | `src/lib/db/menuItem.ts` |
 | Hashing / usuarios | `src/lib/db/auth.ts` |
 | Sesiones JWT + cookies | `src/lib/db/session.ts` |
-| Codificación/decodificación JWT | `src/lib/jwt.ts` |
+| Codificación/decodificación JWT | `src/lib/db/jwt.ts` |
 | Registro de plantillas | `src/themes/index.ts` |
 | Tipos compartidos | `src/types/` |
 | Datos de prueba | `scripts/init-db.ts` |
-| Shim legacy Supabase | `src/lib/supabase/` |
 
 ## Code Map
 | Symbol | Type | Location | Role |
 |--------|------|----------|------|
-| `getDB` | Function | `src/lib/db/init.ts` | Singleton SQLite + schema + WAL |
-| `createRestaurant` / `updateRestaurant` / `deleteRestaurant` / `getRestaurantBySlug` | Functions | `src/lib/db/restaurant.ts` | CRUD restaurantes + slugify |
-| `createMenu` / `updateMenu` / `deleteMenu` / `getMenuByNumber` | Functions | `src/lib/db/menu.ts` | CRUD menús + secuencia por restaurante |
-| `addMenuItem` / `updateMenuItem` / `deleteMenuItem` / `toggleMenuItemAvailability` / `getMenuItemsByMenuPublic` | Functions | `src/lib/db/menuItem.ts` | CRUD platos + disponibilidad |
-| `createUser` / `verifyUserPassword` | Functions | `src/lib/db/auth.ts` | Hash PBKDF2 fijo + verificación |
+| `getSQL` | Function | `src/lib/db/init.ts` | Singleton async Neon PostgreSQL + schema |
+| `createRestaurant` / `updateRestaurant` / `deleteRestaurant` / `getRestaurantBySlug` | Functions | `src/lib/db/restaurant.ts` | CRUD restaurantes + slugify (async) |
+| `createMenu` / `updateMenu` / `deleteMenu` / `getMenuByNumber` | Functions | `src/lib/db/menu.ts` | CRUD menús + secuencia por restaurante (async) |
+| `addMenuItem` / `updateMenuItem` / `deleteMenuItem` / `toggleMenuItemAvailability` / `getMenuItemsByMenuPublic` | Functions | `src/lib/db/menuItem.ts` | CRUD platos + disponibilidad (async) |
+| `createUser` / `verifyUserPassword` | Functions | `src/lib/db/auth.ts` | Hash PBKDF2 fijo + verificación (async) |
 | `createSession` / `getSessionUser` / `deleteSession` / `requireAuth` | Functions | `src/lib/db/session.ts` | JWT en cookie `auth_token` |
-| `jwtEncode` / `jwtDecode` | Functions | `src/lib/jwt.ts` | JWT manual HMAC-SHA256 |
+| `jwtEncode` / `jwtDecode` | Functions | `src/lib/db/jwt.ts` | JWT manual HMAC-SHA256 |
 | `login` / `signup` / `signOut` | Server Actions | `src/app/login/actions.ts` | Autenticación |
 | `getRestaurantsAction` / `createRestaurantAction` / `updateRestaurantAction` / `deleteRestaurantAction` | Server Actions | `src/app/admin/restaurants/actions.ts` | Acciones restaurantes |
 | `getRestaurantWithMenusAction` / `createMenuAction` / `updateMenuAction` / `deleteMenuAction` | Server Actions | `src/app/admin/restaurants/[id]/menus/actions.ts` | Acciones menús |
@@ -76,7 +69,6 @@ CMS generador de landing pages y páginas de menú para restaurantes. Next.js 16
 | `RestaurantLandingPage` | Page | `src/app/[restaurantSlug]/page.tsx` | Landing pública con tema |
 | `RestaurantMenuPage` | Page | `src/app/[restaurantSlug]/menu/[menuNumber]/page.tsx` | Menú público con tema |
 | `getTheme` / `themeList` | Functions | `src/themes/index.ts` | Registro explícito de plantillas |
-| `updateSession` | Function | `src/lib/supabase/middleware.ts` | Protección de rutas (no registrada) |
 | `ActionButton` | Component | `src/components/ui/ActionButton.tsx` | Botón con `useFormStatus` |
 
 ## Conventions
@@ -85,33 +77,34 @@ CMS generador de landing pages y páginas de menú para restaurantes. Next.js 16
 - Alias `@/*` apunta a `src/*`.
 - Tailwind v4 configurado vía `postcss.config.mjs` (`@tailwindcss/postcss`) y `@import "tailwindcss"` en `src/app/globals.css`.
 - ESLint 9 flat config (`eslint.config.mjs`) con `eslint-config-next/core-web-vitals` + `typescript`.
-- Base de datos: `restaurant.db` en la raíz, creado automáticamente por `getDB()` con WAL.
-- `better-sqlite3` es sincrónico; todas las DB queries son bloqueantes.
-- Tipos compartidos en `src/types/`. No importar `src/lib/db/*` en componentes cliente (arrastra `better-sqlite3`).
+- Base de datos: Neon PostgreSQL serverless vía `DATABASE_URL`. `getSQL()` es un singleton async que inicializa el schema automáticamente.
+- Todas las queries DB son async y usan tagged templates (`await sql`...``). No hay operaciones sincrónicas.
+- Tipos compartidos en `src/types/`. No importar `src/lib/db/*` en componentes cliente (arrastra `@neondatabase/serverless`).
 - Plantillas en `src/themes/{slug}/` exportan `LandingPage`, `MenuPage` y `config`. Registro explícito en `src/themes/index.ts`.
 - Formularios usan `formAction` de Server Actions. `ActionButton` reemplaza `button type="submit"` para mostrar estado de carga.
 - Parámetros de rutas dinámicas son `Promise` (Next.js 15+).
+- `DATABASE_URL` es requerida; el sistema lanza error si no está definida.
 
 ## Anti-Patterns (This Project)
-- **No hay middleware global registrado**. `src/proxy.ts` y `src/lib/supabase/middleware.ts` existen pero no se ejecutan como `src/middleware.ts`. La protección de `/admin` se repite página por página y las acciones re-autorizan con `requireAuth()`.
-- **JWT implementado manualmente** en `src/lib/jwt.ts`. Reemplazar por `jose` en producción.
+- **No hay middleware global registrado**. La protección de `/admin` se repite página por página y las acciones re-autorizan con `requireAuth()`.
+- **JWT implementado manualmente** en `src/lib/db/jwt.ts`. Reemplazar por `jose` en producción.
 - **Hash PBKDF2 con sal fija e iteraciones bajas**: `crypto.pbkdf2Sync(password, "salt", 1000, 64, "sha512")`. Usar sal aleatoria y costo alto.
-- **Fallback de JWT_SECRET hardcodeado**: `process.env.JWT_SECRET || "your-secret-key-change-in-production"`. Obligar `JWT_SECRET` en producción.
+- **`DROP TABLE IF EXISTS menu_items` en cada arranque frío** (línea 29 de `init.ts`). Esto destruye todos los platos en cada cold start del serverless. Eliminar o condicionar a entorno de desarrollo.
 - **Registro público deshabilitado en v1**: `signup` redirige con error. No hay flujo de alta de usuarios.
 - **Sin rate limiting** en login ni en Server Actions.
 - **No hay imágenes/logos** en v1. Planificado para v2.
 - **Metadata por defecto de create-next-app** en `src/app/layout.tsx` (`title: "Create Next App"`). Actualizar.
 - **Barrel file `src/lib/db/index.ts`** puede causar ciclos; preferir imports explícitos.
 - **SQL dinámico en `updateRestaurant`** construye `SET` en runtime; las claves están controladas internamente.
-- **Shims legacy de Supabase** (`src/lib/supabase/`) y `database/setup.sql` no se usan en la app actual; considerar eliminarlos.
 
 ## Unique Styles
-- **Migración Supabase → SQLite + CMS**: documentada en `MIGRATION.md`. `src/lib/supabase/` contiene wrappers legacy.
+- **Doble migración**: Supabase → SQLite → Neon PostgreSQL. Documentada en `MIGRATION.md`.
 - **Sesión propia en cookie `auth_token`**: sin NextAuth, Supabase Auth ni librería JWT externa.
 - **Sistema de plantillas con registro explícito**: evita imports dinámicos inseguros.
 - **Multi-tenant simple**: un único admin gestiona múltiples restaurantes; cada restaurante tiene menús numerados.
 - **Página `/carta` vacía**: reservada para futura funcionalidad o redirección; no hay rutas activas allí.
-- **Nested AGENTS.md**: ya existen `src/app/AGENTS.md`, `src/lib/db/AGENTS.md` y `src/lib/supabase/AGENTS.md` con contexto más detallado.
+- **Nested AGENTS.md**: existen `src/app/AGENTS.md` y `src/lib/db/AGENTS.md` con contexto más detallado.
+- **Serverless-first**: diseñado para Vercel + Neon. `vercel-build` ejecuta `init-db` tras el build.
 
 ## Commands
 ```bash
@@ -120,14 +113,14 @@ npm run dev           # localhost:3000
 npm run build         # build de producción
 npm run start         # servidor de producción
 npm run lint          # eslint
-npm run init-db       # seed: admin + restaurantes de ejemplo (tsx/cjs)
+npm run init-db       # seed: admin + restaurantes de ejemplo (tsx)
+npm run vercel-build  # build + seed (usado en Vercel)
 ```
 
 ## Notes
 - `src/app/page.tsx` redirige `/` → `/admin`.
 - `scripts/init-db.ts` crea el usuario `admin@restaurant.local` / `admin123` y dos restaurantes de ejemplo. No usar en producción.
-- `restaurant.db`, `restaurant.db-shm` y `restaurant.db-wal` están en `.gitignore`; no versionarlos.
-- `database/setup.sql` es legacy de Supabase; no se usa en la implementación SQLite.
 - No hay tests automatizados ni CI/CD configurados.
 - Las páginas públicas son `/{restaurantSlug}` y `/{restaurantSlug}/menu/{menuNumber}`.
-- Para habilitar protección global de rutas, renombrar `src/proxy.ts` a `src/middleware.ts` (o crear uno nuevo) y adaptar `updateSession` para usar `request.cookies` en lugar de `cookies()` de `next/headers`.
+- Los archivos legacy `src/proxy.ts`, `src/lib/supabase/`, `database/setup.sql` y `restaurant.db*` fueron eliminados en la migración a Neon PostgreSQL.
+- No existe `src/middleware.ts`. Para habilitar protección global de rutas, crear uno nuevo.
