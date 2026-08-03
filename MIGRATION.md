@@ -1,29 +1,37 @@
-# Migración de Supabase a SQLite3
+# Migración de Supabase a SQLite + CMS generador de menús
 
-Esta aplicación ha sido migrada de **Supabase** a **SQLite3** para usar un archivo como base de datos local.
+Este proyecto fue migrado de **Supabase** a **SQLite** y evolucionado a un **CMS generador de páginas de menú**.
 
-## Cambios realizados
+## Estado actual
 
-### 1. Dependencias
+- Base de datos local SQLite (`better-sqlite3`) en `restaurant.db`.
+- Autenticación propia con email/contraseña y sesiones JWT en cookies HTTP-only.
+- Un único usuario admin (sin registro público).
+- Múltiples restaurantes, cada uno con múltiples menús.
+- Páginas públicas generadas por restaurante:
+  - `/{restaurantSlug}` — landing page simple.
+  - `/{restaurantSlug}/menu/{menuNumber}` — menú funcional.
+- Sistema de plantillas extensible en `src/themes/`.
 
-- ❌ Removidas: `@supabase/ssr`, `@supabase/supabase-js`, `sqlite3`
-- ✅ Agregadas: `better-sqlite3`
+## Modelo de datos
 
-### 2. Estructura de Base de Datos
+```sql
+restaurants(
+  id, slug, name, description, theme, accent_color, is_active, created_at
+)
 
-- **Tablas creadas automáticamente**:
-  - `users`: almacena usuarios y contraseñas (hasheadas)
-  - `menu_items`: almacena los platos del menú
+menus(
+  id, restaurant_id, menu_number, name, is_active, created_at
+)
 
-### 3. Autenticación
+menu_items(
+  id, menu_id, name, description, price, category, available, created_at
+)
 
-- **Sistema anterior**: OAuth con Supabase
-- **Sistema nuevo**: Email + Contraseña con sesiones JWT almacenadas en cookies
-- Las contraseñas se hashean con PBKDF2
-
-### 4. Ubicación de la Base de Datos
-
-El archivo `restaurant.db` se crea automáticamente en la raíz del proyecto.
+users(
+  id, email, password_hash, created_at
+)
+```
 
 ## Cómo usar
 
@@ -33,18 +41,18 @@ El archivo `restaurant.db` se crea automáticamente en la raíz del proyecto.
 npm install
 ```
 
-### Inicialización de la Base de Datos
-
-La base de datos se inicializa automáticamente en el primer acceso. Para crear un usuario de prueba:
+### Inicialización de la base de datos
 
 ```bash
 npm run init-db
 ```
 
-**Credenciales de prueba**:
+Credenciales de prueba:
 
 - Email: `admin@restaurant.local`
 - Contraseña: `admin123`
+
+Esto crea también dos restaurantes de ejemplo con menús y platos.
 
 ### Desarrollo
 
@@ -52,7 +60,13 @@ npm run init-db
 npm run dev
 ```
 
-La aplicación estará disponible en `http://localhost:3000`
+Abre [http://localhost:3000](http://localhost:3000). La raíz redirige a `/admin`.
+
+### URLs de ejemplo
+
+- Admin: `/admin`
+- Landing: `/la-trattoria`
+- Menú: `/la-trattoria/menu/1`
 
 ### Producción
 
@@ -61,78 +75,12 @@ npm run build
 npm start
 ```
 
-## Estructura de carpetas
-
-```
-src/
-├── lib/
-│   ├── db/
-│   │   ├── init.ts      # Inicialización de BD y esquema
-│   │   ├── menu.ts      # Operaciones CRUD para menú
-│   │   ├── auth.ts      # Autenticación y usuarios
-│   │   └── session.ts   # Manejo de sesiones
-│   ├── jwt.ts           # Codificación/decodificación de JWT
-│   └── supabase/
-│       ├── server.ts    # Compatible pero usa SQLite3
-│       └── middleware.ts # Protección de rutas
-├── app/
-│   ├── admin/           # Panel de administración
-│   ├── login/           # Página de login
-│   └── carta/           # Menú público
-```
-
-## Migraciones de código principales
-
-### Antes (Supabase)
-
-```typescript
-const supabase = await createClient();
-const { data, error } = await supabase.from("menu_items").select("*");
-```
-
-### Después (SQLite3)
-
-```typescript
-import { getMenuItems } from "@/lib/db/menu";
-const items = getMenuItems();
-```
-
-### Antes (Login)
-
-```typescript
-const { error } = await supabase.auth.signInWithPassword(data);
-```
-
-### Después (Login)
-
-```typescript
-import { verifyUserPassword, createSession } from "@/lib/db/auth";
-const user = verifyUserPassword(email, password);
-if (user) await createSession(user);
-```
-
 ## Variables de entorno
 
-Opcional (se genera automáticamente si no existe):
-
-- `JWT_SECRET`: Clave para firmar tokens JWT
-
-## Seguridad
-
-- ✅ Contraseñas hasheadas con PBKDF2
-- ✅ Sesiones firmadas con JWT
-- ✅ Cookies HTTP-only
-- ✅ CSRF protection en routes dinámicas
-
-## Restauración de datos desde Supabase
-
-Si necesitas migrar datos existentes de Supabase, puedes:
-
-1. Exportar los datos como JSON desde Supabase
-2. Usar un script para importarlos a SQLite3
+- `JWT_SECRET` — clave para firmar tokens JWT. En producción debe establecerse explícitamente.
 
 ## Notas
 
-- El archivo `restaurant.db` se crea automáticamente
-- Recomendado hacer backup regularmente del archivo `restaurant.db`
-- Para resetear la BD, simplemente elimina el archivo `restaurant.db` y reinicia la app
+- `restaurant.db` y sus archivos `-shm`/`-wal` están en `.gitignore`; no deben versionarse.
+- No se usan variables `NEXT_PUBLIC_SUPABASE_*`; toda la persistencia es SQLite local.
+- `database/setup.sql` es legacy de Supabase y no se utiliza.

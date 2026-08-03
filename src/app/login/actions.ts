@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { verifyUserPassword, createUser, getUserByEmail } from "@/lib/db/auth";
+import { verifyUserPassword } from "@/lib/db/auth";
 import { createSession, deleteSession } from "@/lib/db/session";
 
 export async function login(formData: FormData) {
@@ -21,25 +21,10 @@ export async function login(formData: FormData) {
   redirect("/admin");
 }
 
-export async function signup(formData: FormData) {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  // Check if user already exists
-  const existingUser = getUserByEmail(email);
-  if (existingUser) {
-    redirect("/login?error=El email ya está registrado");
-  }
-
-  try {
-    const user = createUser(email, password);
-    await createSession(user);
-
-    revalidatePath("/", "layout");
-    redirect("/admin");
-  } catch {
-    redirect("/login?error=Error al registrarse");
-  }
+export async function signup(_formData: FormData) {
+  void _formData;
+  // Registration is disabled in v1: only the seeded admin account is allowed.
+  redirect("/login?error=El registro está deshabilitado");
 }
 
 export async function signOut() {

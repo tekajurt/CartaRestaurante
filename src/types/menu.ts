@@ -1,9 +1,8 @@
-export type MenuItem = {
+export type Menu = {
   id: string;
+  restaurant_id: string;
+  menu_number: number;
   name: string;
-  description: string;
-  price: number | string;
-  category: string;
-  available: boolean;
+  is_active: boolean;
   created_at: string;
 };

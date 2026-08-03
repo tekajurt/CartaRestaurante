@@ -53,6 +53,7 @@ export function verifyUserPassword(email: string, password: string): User | null
     return null;
   }
   
-  const { password_hash, ...userWithoutPassword } = user;
+  const { password_hash: _passwordHash, ...userWithoutPassword } = user;
+  void _passwordHash;
   return userWithoutPassword;
 }

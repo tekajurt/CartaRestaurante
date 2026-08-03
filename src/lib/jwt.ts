@@ -17,7 +17,7 @@ function createSignature(data: string): string {
     .digest("base64url");
 }
 
-export function jwtEncode(payload: Record<string, any>): string {
+export function jwtEncode(payload: Record<string, unknown>): string {
   const header = base64Encode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const encodedPayload = base64Encode(JSON.stringify(payload));
   const signature = createSignature(`${header}.${encodedPayload}`);
@@ -25,7 +25,7 @@ export function jwtEncode(payload: Record<string, any>): string {
   return `${header}.${encodedPayload}.${signature}`;
 }
 
-export function jwtDecode(token: string): Record<string, any> {
+export function jwtDecode(token: string): Record<string, unknown> {
   try {
     const [header, payload, signature] = token.split(".");
 

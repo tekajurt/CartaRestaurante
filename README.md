@@ -1,191 +1,111 @@
-# Gestor de Menú de Restaurante
+# CMS Generador de Menús de Restaurante
 
-Una aplicación completa para gestionar el menú de un restaurante con Next.js 15, TypeScript, Tailwind CSS y Supabase.
+Aplicación para generar páginas de menú de restaurante. Cada restaurante (cliente externo) tiene una landing page simple y uno o más menús numerados accesibles públicamente.
 
-## 🚀 Características
+## Stack
 
-- ✅ **Autenticación** con Supabase Auth
-- ✅ **Rutas protegidas** con middleware
-- ✅ **Panel de administración** para gestionar el menú (CRUD completo)
-- ✅ **Vista pública** de la carta accesible sin autenticación
-- ✅ **TypeScript** para type safety
-- ✅ **Tailwind CSS** para estilos modernos
-- ✅ **Server Components** de Next.js 15
-- ✅ **Server Actions** para operaciones de datos
+- Next.js 16 (App Router)
+- React 19
+- TypeScript 5
+- Tailwind CSS v4
+- SQLite (`better-sqlite3`)
+- Autenticación JWT propia en cookies HTTP-only
 
-## 📋 Requisitos previos
+## Características
 
-- Node.js 18+ instalado
-- Una cuenta en [Supabase](https://supabase.com)
+- Panel de administración para crear y gestionar restaurantes.
+- Múltiples menús por restaurante (`/restaurantSlug/menu/1`, `/menu/2`, etc.).
+- Sistema de plantillas extensible en `src/themes/`.
+- Edición de platos por categoría, precio y disponibilidad.
+- Vista pública de cada menú renderizada con el tema seleccionado.
+- Sin registro público: un único admin gestiona todo.
 
-## 🛠️ Configuración
+## Requisitos
 
-### 1. Instalar dependencias
+- Node.js 18+
+
+## Instalación
 
 ```bash
 npm install
 ```
 
-### 2. Configurar Supabase
-
-1. Crea un nuevo proyecto en [Supabase](https://supabase.com)
-2. Ve a **Project Settings** → **API**
-3. Copia el `Project URL` y la `anon/public` key
-4. Crea un archivo `.env.local` en la raíz del proyecto:
+## Configuración
 
 ```bash
-cp .env.example .env.local
+# Crear base de datos y usuario de prueba
+npm run init-db
 ```
 
-5. Edita `.env.local` y agrega tus credenciales:
+Credenciales de prueba:
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase_aquí
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key_aquí
-```
+- Email: `admin@restaurant.local`
+- Contraseña: `admin123`
 
-### 3. Configurar la base de datos
-
-1. Ve a **SQL Editor** en tu proyecto de Supabase
-2. Ejecuta el script de `database/setup.sql` para crear:
-   - Tabla `menu_items`
-   - Índices para optimizar consultas
-   - Políticas de Row Level Security (RLS)
-   - Datos de ejemplo (opcional)
-
-### 4. Ejecutar en desarrollo
+## Desarrollo
 
 ```bash
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
+Abre [http://localhost:3000](http://localhost:3000). La raíz redirige al panel de administración.
 
-## 📁 Estructura del proyecto
+## URLs de ejemplo
+
+- `/admin` — panel de administración
+- `/admin/restaurants/new` — crear restaurante
+- `/la-trattoria` — página de presentación
+- `/la-trattoria/menu/1` — menú público
+
+## Build de producción
+
+```bash
+npm run build
+npm start
+```
+
+## Estructura
 
 ```
 src/
 ├── app/
-│   ├── admin/              # Panel de administración (protegido)
-│   │   ├── actions.ts      # Server Actions para CRUD
-│   │   └── page.tsx        # Interfaz de administración
-│   ├── auth/
-│   │   └── callback/       # Callback de autenticación de Supabase
-│   │       └── route.ts
-│   ├── carta/              # Vista pública del menú
-│   │   └── page.tsx
-│   ├── login/              # Página de login/registro
-│   │   ├── actions.ts      # Server Actions de autenticación
-│   │   └── page.tsx
-│   └── page.tsx            # Home (redirige a /carta)
+│   ├── page.tsx                    # Redirige a /admin
+│   ├── login/                      # Login
+│   ├── admin/                      # Dashboard
+│   ├── admin/restaurants/          # CRUD restaurantes
+│   ├── admin/restaurants/[id]/menus/           # CRUD menús
+│   ├── admin/restaurants/[id]/menus/[menuNumber]/  # CRUD platos
+│   └── [restaurantSlug]/           # Landing + menú público
 ├── lib/
-│   └── supabase/
-│       ├── client.ts       # Cliente de Supabase para navegador
-│       ├── server.ts       # Cliente de Supabase para servidor
-│       └── middleware.ts   # Lógica de middleware
-└── middleware.ts           # Middleware de Next.js
-database/
-└── setup.sql               # Script SQL para configurar DB
+│   ├── db/                         # SQLite, auth, sesiones
+│   └── jwt.ts                      # JWT manual
+├── themes/                         # Plantillas de menú
+└── types/                          # Tipos compartidos
 ```
 
-## 🔐 Rutas
+## Seguridad
 
-- **`/`** - Home (redirige a `/carta`)
-- **`/carta`** - Vista pública del menú (sin autenticación)
-- **`/login`** - Login y registro
-- **`/admin`** - Panel de administración (requiere autenticación)
+- `JWT_SECRET` debe configurarse en producción.
+- El registro de usuarios está deshabilitado en v1.
+- Las Server Actions de admin requieren autenticación.
+- `restaurant.db` y sus archivos WAL/SHM no se versionan.
 
-## 🎯 Uso
+## Notas
 
-### Para Administradores
+- `database/setup.sql` es legacy de Supabase y no se utiliza.
+- No hay imágenes/logos en v1; se agregarán en v2.
+- El sistema de plantillas es extensible: añade nuevos temas en `src/themes/`.
 
-1. Regístrate en `/login`
-2. Confirma tu email (revisa tu bandeja de entrada)
-3. Inicia sesión
-4. Accede al panel de administración en `/admin`
-5. Agrega, edita o elimina platos del menú
-6. Cambia la disponibilidad de los platos
-
-### Para Clientes
-
-1. Accede a `/carta` para ver el menú público
-2. Solo se muestran los platos marcados como disponibles
-
-## 🗄️ Base de Datos
-
-### Tabla `menu_items`
-
-| Campo       | Tipo      | Descripción                                    |
-| ----------- | --------- | ---------------------------------------------- |
-| id          | UUID      | ID único del plato                             |
-| name        | TEXT      | Nombre del plato                               |
-| description | TEXT      | Descripción del plato                          |
-| price       | DECIMAL   | Precio (2 decimales)                           |
-| category    | TEXT      | Categoría (Entradas, Platos Principales, etc.) |
-| available   | BOOLEAN   | Si el plato está disponible                    |
-| created_at  | TIMESTAMP | Fecha de creación                              |
-
-### Políticas de Seguridad (RLS)
-
-- **Lectura pública**: Cualquiera puede ver platos `available = true`
-- **Lectura completa**: Usuarios autenticados pueden ver todos los platos
-- **Escritura**: Solo usuarios autenticados pueden crear/editar/eliminar
-
-## 🚢 Despliegue
-
-### Vercel (Recomendado)
-
-1. Sube el proyecto a GitHub
-2. Importa el proyecto en [Vercel](https://vercel.com)
-3. Agrega las variables de entorno:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Despliega
-
-### Otras plataformas
-
-Asegúrate de configurar las variables de entorno en tu plataforma de hosting.
-
-## 👨‍💻 Desarrollo
+## Comandos
 
 ```bash
-# Instalar dependencias
-npm install
-
-# Desarrollo
-npm run dev
-
-# Build
-npm run build
-
-# Iniciar producción
-npm start
-
-# Linting
-npm run lint
+npm run dev        # Desarrollo
+npm run build      # Build
+npm run start      # Producción
+npm run lint       # Linting
+npm run init-db    # Seed inicial
 ```
 
-## 🐛 Solución de problemas
+## Migración
 
-### Error de autenticación
-
-- Verifica que las variables de entorno estén correctamente configuradas
-- Confirma que el callback URL esté permitido en Supabase (Settings → Auth → URL Configuration)
-
-### No se muestran los platos
-
-- Verifica que la tabla `menu_items` esté creada
-- Asegúrate de que las políticas RLS estén correctamente configuradas
-- Revisa la consola del navegador para errores
-
-### Errores de TypeScript
-
-```bash
-npm run build
-```
-
-Esto te mostrará todos los errores de tipo.
-
----
-
-¡Disfruta gestionando tu menú! 🍽️
+Ver `MIGRATION.md` para el historial de cambios desde Supabase.

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { login, signup } from "./actions";
 
 export default async function LoginPage({
@@ -80,12 +81,12 @@ export default async function LoginPage({
         </form>
 
         <div className="text-center mt-4">
-          <a
-            href="/carta"
+          <Link
+            href="/"
             className="text-amber-600 hover:text-amber-500 text-sm"
           >
-            Ver carta pública →
-          </a>
+            Ver panel →
+          </Link>
         </div>
       </div>
     </div>

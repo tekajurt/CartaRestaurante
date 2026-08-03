@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { jwtDecode, jwtEncode } from "@/lib/jwt";
 import { User } from "./auth";
 
-const SESSION_COOKIE = "auth_token";
+export const SESSION_COOKIE = "auth_token";
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
 
 export async function createSession(user: User): Promise<string> {
@@ -34,16 +34,21 @@ export async function getSessionUser(): Promise<User | null> {
   }
 
   try {
-    const payload = jwtDecode(token) as any;
-    
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
+    const payload = jwtDecode(token) as Record<string, unknown>;
+
+    const exp = typeof payload.exp === "number" ? payload.exp : undefined;
+    if (exp && exp * 1000 < Date.now()) {
       return null;
     }
 
+    const iat = typeof payload.iat === "number" ? payload.iat : Date.now() / 1000;
+    const userId = typeof payload.userId === "string" ? payload.userId : "";
+    const email = typeof payload.email === "string" ? payload.email : "";
+
     return {
-      id: payload.userId,
-      email: payload.email,
-      created_at: new Date(payload.iat * 1000).toISOString(),
+      id: userId,
+      email,
+      created_at: new Date(iat * 1000).toISOString(),
     };
   } catch {
     return null;
@@ -53,4 +58,12 @@ export async function getSessionUser(): Promise<User | null> {
 export async function deleteSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);
+}
+
+export async function requireAuth(): Promise<User> {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+  return user;
 }
