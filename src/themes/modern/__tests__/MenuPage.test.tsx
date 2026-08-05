@@ -19,6 +19,7 @@ const menu: Menu = {
   restaurant_id: "rest-1",
   name: "Menú Principal",
   menu_number: 1,
+  is_active: true,
   created_at: "2024-01-01",
 };
 

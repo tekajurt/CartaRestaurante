@@ -1,7 +1,7 @@
 import { getSessionUser } from "@/lib/db/session";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { signOut } from "@/app/login/actions";
+import { signout } from "@/app/login/actions";
 import { getRestaurantsAction, deleteRestaurantAction } from "./restaurants/actions";
 import ActionButton from "@/components/ui/ActionButton";
 
@@ -16,11 +16,21 @@ export default async function AdminPage() {
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-semibold text-gray-900">Panel de Administración</h1>
+            <div className="flex items-center gap-6">
+              <h1 className="text-xl font-semibold text-gray-900">Panel de Administración</h1>
+              <Link
+                href="/admin/accounts"
+                className="text-sm text-amber-600 hover:text-amber-500"
+              >
+                Cuentas
+              </Link>
+            </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">{user.email}</span>
-              <form action={signOut}>
-                <button type="submit" className="text-sm text-red-600 hover:text-red-500">Cerrar Sesión</button>
+              <span className="text-sm text-gray-600">{user.email ?? user.username}</span>
+              <form action={signout}>
+                <button type="submit" className="text-sm text-red-600 hover:text-red-500">
+                  Cerrar Sesión
+                </button>
               </form>
             </div>
           </div>

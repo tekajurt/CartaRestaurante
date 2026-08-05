@@ -19,3 +19,9 @@ export const menuItemSchema = z.object({
   category: z.string().min(1, "La categoría es obligatoria").max(100),
   available: z.coerce.boolean().default(true),
 });
+
+export const accountSchema = z.object({
+  username: z.string().min(2, "El usuario debe tener al menos 2 caracteres").max(50),
+  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres").max(100),
+  restaurant_id: z.string().min(1, "Debe seleccionar un restaurante"),
+});

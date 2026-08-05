@@ -20,11 +20,18 @@ async function initializeSchema(sql: NeonQueryFunction<false, false>): Promise<v
   await sql`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE,
+      username TEXT UNIQUE,
       password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'admin',
+      restaurant_id TEXT REFERENCES restaurants(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'admin'`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS restaurant_id TEXT REFERENCES restaurants(id) ON DELETE SET NULL`;
+  await sql`ALTER TABLE users ALTER COLUMN email DROP NOT NULL`;
 
   await sql`DROP TABLE IF EXISTS menu_items`;
 

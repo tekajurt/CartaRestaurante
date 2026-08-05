@@ -18,7 +18,7 @@ export async function getRestaurantsAction() {
 }
 
 export async function createRestaurantAction(formData: FormData) {
-  await requireAuth();
+  await requireAuth("admin");
 
   const parsed = restaurantSchema.safeParse({
     name: formData.get("name"),
@@ -39,7 +39,7 @@ export async function createRestaurantAction(formData: FormData) {
 }
 
 export async function updateRestaurantAction(id: string, formData: FormData) {
-  await requireAuth();
+  await requireAuth("admin");
 
   const parsed = restaurantSchema.partial().safeParse({
     name: formData.get("name"),
@@ -60,7 +60,7 @@ export async function updateRestaurantAction(id: string, formData: FormData) {
 }
 
 export async function deleteRestaurantAction(id: string) {
-  await requireAuth();
+  await requireAuth("admin");
   await deleteRestaurant(id);
   revalidatePath("/admin");
 }
