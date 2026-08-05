@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { requireAuth } from "@/lib/db/session";
+import { restaurantSchema } from "@/lib/validations";
 import {
   createRestaurant,
   updateRestaurant,
@@ -11,14 +11,6 @@ import {
   getRestaurants,
   getRestaurantById,
 } from "@/lib/db/restaurant";
-
-const restaurantSchema = z.object({
-  name: z.string().min(2, "El nombre es obligatorio").max(100),
-  description: z.string().max(500).optional(),
-  theme: z.enum(["default", "modern"]).default("default"),
-  accent_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Color inválido").default("#f59e0b"),
-  is_active: z.coerce.boolean().default(true),
-});
 
 export async function getRestaurantsAction() {
   await requireAuth();

@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { requireAuth } from "@/lib/db/session";
+import { menuItemSchema } from "@/lib/validations";
 import {
   addMenuItem,
   updateMenuItem,
@@ -13,14 +13,6 @@ import {
 } from "@/lib/db/menuItem";
 import { getMenuById } from "@/lib/db/menu";
 import { getRestaurantById } from "@/lib/db/restaurant";
-
-const menuItemSchema = z.object({
-  name: z.string().min(1, "El nombre es obligatorio").max(100),
-  description: z.string().max(500).default(""),
-  price: z.coerce.number().min(0, "El precio no puede ser negativo"),
-  category: z.string().min(1, "La categoría es obligatoria").max(100),
-  available: z.coerce.boolean().default(true),
-});
 
 export async function getMenuWithItemsAction(menuId: string) {
   await requireAuth();
