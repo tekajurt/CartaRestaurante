@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getRestaurantWithMenusAction, createMenuAction, deleteMenuAction } from "./actions";
 import ActionButton from "@/components/ui/ActionButton";
+import QRCode from "@/components/ui/QRCode";
 
 export default async function RestaurantMenusPage({
   params,
@@ -66,37 +67,41 @@ export default async function RestaurantMenusPage({
           </div>
         ) : (
           <div className="space-y-4">
-            {menus.map((menu) => (
-              <div key={menu.id} className="bg-white shadow rounded-lg p-6 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Menú #{menu.menu_number}: {menu.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    <a href={`/${restaurant.slug}/menu/${menu.menu_number}`} target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:text-amber-500">
-                      /{restaurant.slug}/menu/{menu.menu_number}
-                    </a>
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <a
-                    href={`/admin/restaurants/${restaurant.id}/menus/${menu.menu_number}`}
-                    className="px-3 py-1 text-xs font-medium rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200"
-                  >
-                    Editar platos
-                  </a>
-                  <form action={deleteMenuAction.bind(null, menu.id, restaurant.id)}>
-                    <ActionButton
-                      type="submit"
-                      className="px-3 py-1 text-xs font-medium rounded-md bg-red-100 text-red-800 hover:bg-red-200"
-                      labelLoading="Eliminando..."
+            {menus.map((menu) => {
+              const menuUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ""}/${restaurant.slug}/menu/${menu.menu_number}`;
+              return (
+                <div key={menu.id} className="bg-white shadow rounded-lg p-6 flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Menú #{menu.menu_number}: {menu.name}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      <a href={menuUrl} target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:text-amber-500">
+                        /{restaurant.slug}/menu/{menu.menu_number}
+                      </a>
+                    </p>
+                  </div>
+                  <QRCode url={menuUrl} size={80} className="rounded border" />
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/admin/restaurants/${restaurant.id}/menus/${menu.menu_number}`}
+                      className="px-3 py-1 text-xs font-medium rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200"
                     >
-                      Eliminar
-                    </ActionButton>
-                  </form>
+                      Editar platos
+                    </Link>
+                    <form action={deleteMenuAction.bind(null, menu.id, restaurant.id)}>
+                      <ActionButton
+                        type="submit"
+                        className="px-3 py-1 text-xs font-medium rounded-md bg-red-100 text-red-800 hover:bg-red-200"
+                        labelLoading="Eliminando..."
+                      >
+                        Eliminar
+                      </ActionButton>
+                    </form>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>

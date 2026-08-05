@@ -6,10 +6,10 @@ import { verifyUserPassword } from "@/lib/db/auth";
 import { createSession, deleteSession } from "@/lib/db/session";
 
 export async function login(formData: FormData) {
-  const email = formData.get("email") as string;
+  const identifier = formData.get("identifier") as string;
   const password = formData.get("password") as string;
 
-  const user = await verifyUserPassword(email, password);
+  const user = await verifyUserPassword(identifier, password);
 
   if (!user) {
     redirect("/login?error=Credenciales incorrectas");
@@ -18,16 +18,10 @@ export async function login(formData: FormData) {
   await createSession(user);
 
   revalidatePath("/", "layout");
-  redirect("/admin");
+  redirect(user.role === "admin" ? "/admin" : "/dashboard");
 }
 
-export async function signup(_formData: FormData) {
-  void _formData;
-  // Registration is disabled in v1: only the seeded admin account is allowed.
-  redirect("/login?error=El registro está deshabilitado");
-}
-
-export async function signOut() {
+export async function signout() {
   await deleteSession();
   revalidatePath("/", "layout");
   redirect("/login");

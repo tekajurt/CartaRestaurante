@@ -1,56 +1,62 @@
 # AGENTS.md — src/lib/db
 
 ## Overview
-Capa de persistencia y autenticación basada en Neon PostgreSQL (`@neondatabase/serverless`). Soporta múltiples restaurantes, menús y platos.
+Capa de persistencia y autenticación sobre Neon PostgreSQL (`@neondatabase/serverless`). Sin ORM: SQL tagged templates con `mapRow` helpers locales.
 
 ## Structure
 ```
 src/lib/db/
-├── init.ts         # Singleton async getSQL() + creación de tablas + índices
-├── restaurant.ts   # CRUD de restaurants (async)
-├── menu.ts         # CRUD de menus (async)
-├── menuItem.ts     # CRUD de menu_items (async)
-├── auth.ts         # Usuarios y hashing PBKDF2 (async)
-├── session.ts      # Sesiones JWT (cookie auth_token)
-├── jwt.ts          # Codificación/decodificación JWT manual
-└── index.ts        # Barrel exports
+├── init.ts         # getSQL() singleton + CREATE TABLE/INDEX + DROP TABLE bug
+├── restaurant.ts   # CRUD restaurantes + slugify + generateUniqueSlug
+├── menu.ts         # CRUD menús (menu_number secuencial por restaurante)
+├── menuItem.ts     # CRUD platos + toggle availability
+├── auth.ts         # Usuarios, PBKDF2 hash/verify
+├── session.ts      # Sesiones vía cookie auth_token (JWT)
+└── index.ts        # Barrel (no usado por la app)
 ```
 
+Plus `src/lib/jwt.ts` (fuera de `db/`): encode/decode JWT manual HS256.
+
 ## Where to Look
+
 | Task | Location |
 |------|----------|
-| Conexión PostgreSQL y schema | `init.ts` |
-| Queries de restaurantes | `restaurant.ts` |
-| Queries de menús | `menu.ts` |
-| Queries de platos | `menuItem.ts` |
-| Hash/verificación de passwords | `auth.ts` |
-| Crear/validar/eliminar sesión | `session.ts` |
-| Codificar/decodificar JWT | `jwt.ts` |
+| Conexión + schema | `init.ts` → `getSQL()` |
+| Queries restaurante | `restaurant.ts` → `getRestaurantBySlug`, `createRestaurant`, etc. |
+| Queries menú | `menu.ts` → `getMenuByNumber`, `createMenu`, etc. |
+| Queries plato | `menuItem.ts` → `addMenuItem`, `toggleMenuItemAvailability`, etc. |
+| Hash password | `auth.ts` → `hashPassword`, `verifyUserPassword` |
+| Sesión | `session.ts` → `createSession`, `getSessionUser`, `deleteSession`, `requireAuth` |
+| JWT | `jwt.ts` → `jwtEncode`, `jwtDecode` |
 
 ## Conventions
-- `getSQL()` es un singleton async: se conecta a Neon PostgreSQL usando `DATABASE_URL` y ejecuta `initializeSchema()` en la primera llamada.
-- `DATABASE_URL` es requerida; el sistema lanza error si no está definida.
-- Todas las queries son async y usan tagged templates: `const rows = await sql`SELECT * FROM ...``.
-- Las tablas se crean con `CREATE TABLE IF NOT EXISTS` en `initializeSchema()`. Los índices usan `CREATE INDEX IF NOT EXISTS`.
-- `restaurants.slug` es único y se genera automáticamente desde el nombre.
-- `menus.menu_number` es secuencial por restaurante.
-- El módulo expone barrel exports desde `index.ts`.
-- Las queries usan `mapRow` helpers locales para convertir `Record<string, unknown>` al tipo de dominio.
-- `created_at` se sintetiza con `new Date().toISOString()` en los inserts en lugar de leer el default de la BD.
-- No hay pool de conexiones manual; `neon()` ya incluye connection pooling automático sobre HTTP.
+
+- **`getSQL()` singleton async.** Conexión Neon vía `DATABASE_URL`, ejecuta `initializeSchema()` en primera llamada. Lanza si `DATABASE_URL` no está definida.
+- **SQL tagged templates.** `const rows = await sql\`SELECT ...\``. Sin builder, sin ORM.
+- **`mapRow` helper local por módulo.** `Record<string, unknown>` → tipo de dominio.
+- **Tablas con `CREATE TABLE IF NOT EXISTS`.** Índices con `CREATE INDEX IF NOT EXISTS`.
+- **Foreign keys con `ON DELETE CASCADE`.** `menus` → `restaurants`, `menu_items` → `menus`.
+- **`created_at` cliente.** `new Date().toISOString()` en vez de `DEFAULT NOW()` en BD.
+- **Tipos en `src/types/`.** `Restaurant`, `Menu`, `MenuItem`, `User`, `RestaurantInput`, `MenuItemInput`.
+- **Slug:** auto-generado desde nombre con `slugify` (Unicode NFKD + regex) + contador de colisión.
 
 ## Anti-Patterns
-- **Sal fija en PBKDF2**. `auth.ts` usa `"salt"` para todos los usuarios; debería ser una sal aleatoria por usuario.
-- **Iteraciones bajas**. `1000` iteraciones de PBKDF2; recomendación actual es mucho mayor.
-- **Hashing sincrónico**. `pbkdf2Sync` bloquea el event loop; preferir la versión asíncrona.
-- **SELECT \***. `auth.ts` usa `SELECT *`; usar columnas explícitas.
-- **SQL dinámico en update**. `updateRestaurant` y `updateMenuItem` construyen `SET` en runtime; las claves son controladas internamente.
-- **`DROP TABLE IF EXISTS menu_items` en cada cold start**. La línea 29 de `init.ts` destruye todos los platos en cada arranque frío del serverless. Eliminar o condicionar a `NODE_ENV === "development"`.
-- **`created_at` generado en cliente**. Usar `now()` en los inserts en lugar de `new Date().toISOString()` para evitar desfases de reloj entre el serverless y la BD.
+
+- **`DROP TABLE IF EXISTS menu_items` cada cold start** (`init.ts:29`). Destruye todos los platos en cada arranque frío. Condicionar a `NODE_ENV === "development"` o eliminar.
+- **Sal fija `"salt"`** (`auth.ts:12`). Misma sal para todos los usuarios. Debe ser aleatoria por usuario, almacenada en BD.
+- **1000 iteraciones PBKDF2** (`auth.ts:12`). OWASP recomienda >= 600k para SHA-512.
+- **`pbkdf2Sync` síncrono** (`auth.ts:12`). Bloquea event loop. Usar `crypto.pbkdf2` async.
+- **`SELECT *` en auth** (`auth.ts:22`). Expone `password_hash` en el tipo de retorno.
+- **JWT manual** (`jwt.ts`). Sin `jose`/`jsonwebtoken`. Riesgo: timing attacks, bugs de firma.
+- **`created_at` desde cliente** (5 archivos). Usar `DEFAULT NOW()` en BD para evitar drift de reloj.
+- **SQL dinámico en updates** (`restaurant.ts:52-74`, `menuItem.ts:21-34`). Construcción de SET vía string array + positional params. Mantenible pero frágil.
+- **`getMenuByRestaurantAndNumber` = `getMenuByNumber`** (`menu.ts:40` vs `52`). Código duplicado idéntico.
+- **`.env` commiteado** con `DATABASE_URL` y `JWT_SECRET`.
 
 ## Notes
-- `session.ts` lee/escribe la cookie `auth_token` con `cookies()` de `next/headers`.
-- `session.ts` reconstruye `created_at` desde el claim `iat` del JWT, no desde la BD.
-- `jwt.ts` implementa JWT manualmente; usar `jose` en producción. `JWT_SECRET` es requerido (lanza error si no está definido).
-- `src/lib/db/index.ts` re-exporta todo; preferir importaciones explícitas para evitar ciclos futuros.
-- Los tipos compartidos viven en `src/types/`.
+
+- `session.ts` lee/escribe cookie `auth_token` (httpOnly, SameSite Lax, 7 días). `createSession` la escribe, `deleteSession` la borra, `getSessionUser` la valida.
+- `session.ts` reconstruye `created_at` desde claim `iat` del JWT, no desde BD.
+- `requireAuth()` lanza `Error("Unauthorized")`; las páginas admin lo atrapan y redirigen.
+- El barrel `index.ts` existe pero **no se usa**. Importar módulos directamente para evitar ciclos futuros.
+- `initializeSchema()` se ejecuta en cada cold start. Solo `menu_items` recibe DROP (bug).

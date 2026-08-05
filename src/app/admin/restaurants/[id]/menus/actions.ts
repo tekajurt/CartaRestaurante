@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { requireAuth } from "@/lib/db/session";
+import { menuSchema } from "@/lib/validations";
 import {
   createMenu,
   updateMenu,
@@ -12,10 +12,6 @@ import {
   getMenuById,
 } from "@/lib/db/menu";
 import { getRestaurantById } from "@/lib/db/restaurant";
-
-const menuSchema = z.object({
-  name: z.string().min(1, "El nombre es obligatorio").max(100),
-});
 
 export async function getRestaurantWithMenusAction(id: string) {
   await requireAuth();

@@ -11,28 +11,28 @@ import {
   toggleMenuItemAvailability,
   getMenuItemsByMenu,
 } from "@/lib/db/menuItem";
-import { getMenuById } from "@/lib/db/menu";
+import { getMenuByNumber } from "@/lib/db/menu";
 import { getRestaurantById } from "@/lib/db/restaurant";
 
-export async function getMenuWithItemsAction(menuId: string) {
-  await requireAuth();
-  const menu = await getMenuById(menuId);
+async function getOwnedRestaurant() {
+  const user = await requireAuth("restaurant_owner");
+  const restaurant = await getRestaurantById(user.restaurant_id!);
+  if (!restaurant) throw new Error("Forbidden");
+  return restaurant;
+}
+
+export async function getMenuWithItemsAction(menuNumber: number) {
+  const restaurant = await getOwnedRestaurant();
+  const menu = await getMenuByNumber(restaurant.id, menuNumber);
   if (!menu) return null;
-  const restaurant = await getRestaurantById(menu.restaurant_id);
-  const items = await getMenuItemsByMenu(menuId);
+  const items = await getMenuItemsByMenu(menu.id);
   return { menu, restaurant, items };
 }
 
-function getIds(formData: FormData) {
-  const menuId = formData.get("menu_id") as string;
-  const restaurantId = formData.get("restaurant_id") as string;
-  const menuNumber = Number(formData.get("menu_number"));
-  return { menuId, restaurantId, menuNumber };
-}
-
 export async function addMenuItemAction(formData: FormData) {
-  await requireAuth();
-  const { menuId, restaurantId, menuNumber } = getIds(formData);
+  const restaurant = await getOwnedRestaurant();
+  const menuId = formData.get("menu_id") as string;
+  const menuNumber = Number(formData.get("menu_number"));
 
   const parsed = menuItemSchema.safeParse({
     name: formData.get("name"),
@@ -44,18 +44,18 @@ export async function addMenuItemAction(formData: FormData) {
 
   if (!parsed.success) {
     const error = parsed.error.issues.map((e) => e.message).join(", ");
-    redirect(`/admin/restaurants/${restaurantId}/menus/${menuNumber}?error=${encodeURIComponent(error)}`);
+    redirect(`/dashboard/menus/${menuNumber}?error=${encodeURIComponent(error)}`);
   }
 
   await addMenuItem(menuId, parsed.data);
-  revalidatePath(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
-  redirect(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
+  revalidatePath(`/dashboard/menus/${menuNumber}`);
+  redirect(`/dashboard/menus/${menuNumber}`);
 }
 
 export async function updateMenuItemAction(formData: FormData) {
-  await requireAuth();
-  const { menuId: _menuId, restaurantId, menuNumber } = getIds(formData);
-  void _menuId;
+  const restaurant = await getOwnedRestaurant();
+  void restaurant; // ownership verified via getOwnedRestaurant
+  const menuNumber = Number(formData.get("menu_number"));
   const itemId = formData.get("item_id") as string;
 
   const parsed = menuItemSchema.partial().safeParse({
@@ -68,28 +68,26 @@ export async function updateMenuItemAction(formData: FormData) {
 
   if (!parsed.success) {
     const error = parsed.error.issues.map((e) => e.message).join(", ");
-    redirect(`/admin/restaurants/${restaurantId}/menus/${menuNumber}?error=${encodeURIComponent(error)}`);
+    redirect(`/dashboard/menus/${menuNumber}?error=${encodeURIComponent(error)}`);
   }
 
   await updateMenuItem(itemId, parsed.data);
-  revalidatePath(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
-  redirect(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
+  revalidatePath(`/dashboard/menus/${menuNumber}`);
+  redirect(`/dashboard/menus/${menuNumber}`);
 }
 
 export async function deleteMenuItemAction(formData: FormData) {
-  await requireAuth();
-  const { menuId: _menuId, restaurantId, menuNumber } = getIds(formData);
-  void _menuId;
+  await getOwnedRestaurant();
+  const menuNumber = Number(formData.get("menu_number"));
   const itemId = formData.get("item_id") as string;
   await deleteMenuItem(itemId);
-  revalidatePath(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
+  revalidatePath(`/dashboard/menus/${menuNumber}`);
 }
 
 export async function toggleMenuItemAvailabilityAction(formData: FormData) {
-  await requireAuth();
-  const { menuId: _menuId, restaurantId, menuNumber } = getIds(formData);
-  void _menuId;
+  await getOwnedRestaurant();
+  const menuNumber = Number(formData.get("menu_number"));
   const itemId = formData.get("item_id") as string;
   await toggleMenuItemAvailability(itemId);
-  revalidatePath(`/admin/restaurants/${restaurantId}/menus/${menuNumber}`);
+  revalidatePath(`/dashboard/menus/${menuNumber}`);
 }
